@@ -8,6 +8,7 @@ export default {
       query: '', // testo inserito nella search bar
       movies: [], // array per memorizzare i film trovati
       seriesTv: [], // array per memorizzare le serie tv trovate
+      hovered: null
     };
   },
   components: {
@@ -27,7 +28,6 @@ export default {
       // Chiamata API per cercare le serie TV
       this.searchSeries();
     },
-
     // Metodo per cercare i film tramite l'API
     searchMovies() {
       const apiUrl = `https://api.themoviedb.org/3/search/movie`;
@@ -70,76 +70,131 @@ export default {
         });
     },
     //metodo per richiamare immagini al posto della scritta "lingua originale" se non è in en-it-ja mette un immagine generale 
-    getFlags(lang){
-      const validlangs =[
+    getFlags(lang) {
+      const validlangs = [
         'en',
         'it',
         'ja'
       ];
-      if (validlangs.includes(lang)){
-        if (lang == 'en'){
+      if (validlangs.includes(lang)) {
+        if (lang == 'en') {
           return '/img/flags/uk-flag.gif';
         }
-        else if (lang == 'it'){
+        else if (lang == 'it') {
           return '/img/flags/it-flag.gif';
         }
-        else if (lang == 'ja'){
+        else if (lang == 'ja') {
           return '/img/flags/ja-flag.gif';
         }
-      }else {
+      } else {
         return '/img/flags/Flag_with_question_mark.svg.png';
       }
-    }
+    },
+    //metodo per convertire il voto in stelle da 1 a 10 --> 1 a 5 arrotondando per eccesso
+    convertToStars(vote) {
+      return Math.ceil(vote / 2);
+    },
   },
 };
 </script>
 
 <template>
-  <div>
+  <div class="container">
     <!-- Header -->
     <AppHeader />
-
-    <!-- Search Bar e Button -->
-    <form class="form-inline my-2 my-lg-0" @submit.prevent="searchAll">
-      <input v-model="query" class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" />
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">
-        Search
-      </button>
-    </form>
-
-    <!-- Visualizzazione dei risultati per i film -->
-    <div v-if="movies.length > 0" class="mt-4">
-      <h3>Risultati della ricerca - Film:</h3>
-      <ul>
-        <li v-for="movie in movies" :key="movie.id">
-          <h4>{{ movie.title }} ({{ movie.original_title }})</h4>
-          <p>Lingua originale: <img :src="getFlags(movie.original_language)" alt=""></p>
-          <p>Voto: {{ movie.vote_average }}</p>
-          <hr>
-        </li>
-      </ul>
+    <div class="searchbar">
+      <!-- Search Bar e Button -->
+      <form class="row my-2 my-lg-0 justify-content-between" @submit.prevent="searchAll">
+        <input v-model="query" class="rounded col-10 mr-sm-2 border-0" type="search" placeholder="Search"
+          aria-label="Search" />
+        <button class="col-1 btn btn-outline-success my-2 my-sm-0" type="submit">
+          Search
+        </button>
+      </form>
     </div>
-    <br>
-    <!-- Visualizzazione dei risultati per le serie TV -->
-    <div v-if="seriesTv.length > 0" class="mt-4">
-      <h3>Risultati della ricerca - Serie TV:</h3>
-      <ul>
-        <li v-for="serie in seriesTv" :key="serie.id">
-          <h4>{{ serie.name }} ({{ serie.original_name }})</h4>
-          <p>Lingua originale: <img :src="getFlags(serie.original_language)" alt=""></p>
-          <p>Voto: {{ serie.vote_average }}</p>
-          <hr>
-        </li>
-      </ul>
+
+    <div class="container">
+      <!-- Visualizzazione dei risultati per i film -->
+      <div v-if="movies.length > 0" class="mt-4">
+        <h3 class="text-white">Risultati della ricerca - Film: {{movies.length}} !</h3>
+        <div class="py-2">
+          <ul class="row justify-content-center">
+            <li class="col-2 text-white rounded border border-white m-2" v-for="movie in movies" :key="movie.id"
+              @mouseover="hovered = movie.id" @mouseleave="hovered = null">
+              <!--Mostra immagine e titolo -->
+              <div v-if="hovered !== movie.id">
+                <img :src="'https://image.tmdb.org/t/p/w185/' + movie.poster_path" alt="Movie Poster">
+                <h4>{{ movie.title }}</h4>
+              </div>
+
+              <!--Mostra dettagli al hover -->
+              <div v-if="hovered === movie.id">
+                <h4>{{ movie.title }}</h4>
+                <h6>({{ movie.original_title }})</h6>
+                <p>Lingua originale: <img :src="getFlags(movie.original_language)" alt=""></p>
+                <p>
+                  <span v-for="n in 5" :key="n">
+                    <i v-if="n <= convertToStars(movie.vote_average)" class="fa-solid fa-star text-warning"></i>
+                    <i v-else class="fa-regular fa-star"></i>
+                  </span>
+                </p>
+                <p>Overview: {{ movie.overview }}</p>
+              </div>
+            </li>
+
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <!-- Visualizzazione dei risultati per le serie TV -->
+      <div v-if="seriesTv.length > 0" class="mt-4">
+        <h3 class="text-white justify">Risultati della ricerca - Serie-TV: {{seriesTv.length}} !</h3>
+        <ul class="row justify-content-center">
+          <li class="col-2 text-white rounded border border-white m-2" v-for="serie in seriesTv" :key="serie.id" @mouseover="hovered = serie.id" @mouseleave="hovered = null">
+            <img :src="'https://image.tmdb.org/t/p/w185/' + serie.poster_path" alt="Serie Poster">
+            <h4>{{ serie.name }}</h4>
+            <!--Mostra dettagli al hover -->
+            <div v-if="hovered === serie.id">
+              <h4>{{ serie.name }}</h4>
+              <h6>({{ serie.original_name }})</h6>
+              <p>Lingua originale: <img :src="getFlags(serie.original_language)" alt=""></p>
+              <p>
+                <span v-for="n in 5" :key="n">
+                  <i v-if="n <= convertToStars(serie.vote_average)" class="fa-solid fa-star text-warning"></i>
+                  <i v-else class="fa-regular fa-star"></i>
+                </span>
+              </p>
+              <p>Overview: {{ serie.overview }}</p>
+            </div>
+            <hr>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
-</template>
 
+</template>
 <style lang="scss">
 @import 'bootstrap/scss/bootstrap';
-p >img{
+
+body {
+  background-color: rgb(70, 9, 70);
+}
+
+ul>li {
+  list-style: none;
+
+}
+
+p>img {
   width: 32px;
   height: 32px;
   object-fit: contain;
+}
+
+div {
+  transition: opacity 0.3s ease;
 }
 </style>
